@@ -94,32 +94,46 @@
   <div id="fallback">
     <h2>Aplikasi tidak dapat ditampilkan di sini</h2>
     <p>Klik tombol di bawah untuk membuka langsung.</p>
-    <a id="openDirect" href="#" target="_blank" rel="noopener">Buka Aplikasi</a>
+    <a id="openDirect" href="#" target="_top" rel="noopener">Buka Aplikasi</a>
   </div>
 
-  <!--
-    GANTI URL DI BAWAH INI DENGAN URL DEPLOY APPS SCRIPT KAMU
-    Contoh: https://script.google.com/macros/s/AKfycbyQQ07agXuOZmYJPvRAPZqqgtzZYm4H1y0hXfxxbIlY3uIZN0n41lK_p0eDWpyt15QKdw/exec
-  -->
   <iframe id="appFrame"
-    src="https://script.google.com/macros/s/AKfycbyQQ07agXuOZmYJPvRAPZqqgtzZYm4H1y0hXfxxbIlY3uIZN0n41lK_p0eDWpyt15QKdw/exec"
+    style="display:none;"
     title="SIP-BK Integrated System"
     allow="clipboard-write"
     onload="document.getElementById('loader').style.opacity='0'; setTimeout(()=>document.getElementById('loader').style.display='none', 400);">
   </iframe>
 
   <script>
-    const APP_URL = document.getElementById('appFrame').src;
+    // GANTI URL DI BAWAH INI DENGAN URL DEPLOY APPS SCRIPT KAMU
+    const APP_URL = "https://script.google.com/macros/s/AKfycbyQQ07agXuOZmYJPvRAPZqqgtzZYm4H1y0hXfxxbIlY3uIZN0n41lK_p0eDWpyt15QKdw/exec";
+
     document.getElementById('openDirect').href = APP_URL;
 
-    // Jika iframe gagal dimuat (misalnya diblokir), tampilkan fallback setelah beberapa detik
-    setTimeout(() => {
-      const loader = document.getElementById('loader');
-      if (loader.style.display !== 'none') {
-        document.getElementById('fallback').style.display = 'flex';
-        loader.style.display = 'none';
-      }
-    }, 8000);
+    // Deteksi Chrome di Android/iOS (termasuk WebView & varian Chrome-based lain)
+    const ua = navigator.userAgent;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+    const isChromeLike = /Chrome|CriOS|Chromium/i.test(ua) && !/Firefox|FxiOS/i.test(ua);
+
+    if (isMobile && isChromeLike) {
+      // Chrome mobile memblokir cookie sesi Google di dalam iframe (third-party cookie).
+      // Solusi: redirect langsung (top-level navigation), bukan iframe.
+      window.location.replace(APP_URL);
+    } else {
+      // Browser lain (Firefox, Safari desktop, dll) -> tetap coba iframe
+      const frame = document.getElementById('appFrame');
+      frame.style.display = 'block';
+      frame.src = APP_URL;
+
+      // Jika iframe tetap gagal dimuat, tampilkan fallback setelah beberapa detik
+      setTimeout(() => {
+        const loader = document.getElementById('loader');
+        if (loader.style.display !== 'none') {
+          document.getElementById('fallback').style.display = 'flex';
+          loader.style.display = 'none';
+        }
+      }, 8000);
+    }
   </script>
 
 </body>
