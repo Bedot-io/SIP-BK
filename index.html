@@ -110,22 +110,36 @@
 
     document.getElementById('openDirect').href = APP_URL;
 
-    // Deteksi Chrome di Android/iOS (termasuk WebView & varian Chrome-based lain)
+    // Deteksi perangkat mobile (Android/iOS) secara umum.
+    // CATATAN: sebelumnya kode ini hanya redirect kalau UA mengandung "Chrome",
+    // tapi itu keliru — hampir SEMUA browser Chromium di Android (Samsung Internet,
+    // UC Browser, Opera, WebView aplikasi, dst) juga menaruh token "Chrome/x.x"
+    // di user-agent-nya, dan browser mobile lain (Safari iOS dengan ITP-nya)
+    // punya proteksi cookie pihak-ketiga yang setara ketatnya. Jadi pada
+    // praktiknya HAMPIR SEMUA browser mobile akan gagal menampilkan sesi
+    // login Google di dalam iframe cross-origin. Solusi paling stabil:
+    // anggap SEMUA mobile butuh redirect langsung (bukan cuma yang match regex
+    // Chrome), dan baru pakai iframe untuk desktop.
     const ua = navigator.userAgent;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-    const isChromeLike = /Chrome|CriOS|Chromium/i.test(ua) && !/Firefox|FxiOS/i.test(ua);
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua) ||
+                      (navigator.maxTouchPoints > 1 && /Macintosh/i.test(ua)); // iPadOS kadang menyamar sbg Mac
 
-    if (isMobile && isChromeLike) {
-      // Chrome mobile memblokir cookie sesi Google di dalam iframe (third-party cookie).
-      // Solusi: redirect langsung (top-level navigation), bukan iframe.
+    if (isMobile) {
+      // Redirect top-level langsung — address bar akan menuju APP_URL.
+      // Ini memang konsekuensi yang tidak terhindarkan selama Apps Script
+      // membutuhkan sesi login Google di dalam sebuah iframe cross-origin.
       window.location.replace(APP_URL);
     } else {
-      // Browser lain (Firefox, Safari desktop, dll) -> tetap coba iframe
+      // Desktop: coba tampilkan lewat iframe.
       const frame = document.getElementById('appFrame');
       frame.style.display = 'block';
       frame.src = APP_URL;
 
-      // Jika iframe tetap gagal dimuat, tampilkan fallback setelah beberapa detik
+      // Jika iframe gagal dimuat (mis. server memblokir framing, X-Frame-Options,
+      // atau load lambat/timeout), tampilkan tombol fallback ke user setelah 8 detik.
+      // Catatan: event 'onload' iframe TETAP bisa terpicu walau kontennya diblokir
+      // X-Frame-Options, karena itu browser tetap menerima respons HTTP-nya.
+      // Timeout ini hanya menjaga-jaga bila loading benar2 tak kunjung selesai.
       setTimeout(() => {
         const loader = document.getElementById('loader');
         if (loader.style.display !== 'none') {
